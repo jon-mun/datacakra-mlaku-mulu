@@ -3,16 +3,22 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { SignInDto } from './dto';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class AuthService {
-  constructor(private prismaService: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private jwt: JwtService,
+    private config: ConfigService,
+  ) {}
 
   async signIn(signInDto: SignInDto) {
     const { email, password } = signInDto;
-    const user = await this.prismaService.user.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: {
         email,
       },
@@ -27,6 +33,23 @@ export class AuthService {
       throw new BadRequestException('Invalid password');
     }
 
-    return user;
+    return this.signToken(user.id, user.email, user.role);
+  }
+
+  async signToken(
+    userId: string,
+    email: string,
+    role: string,
+  ): Promise<{
+    access_token: string;
+  }> {
+    const payload = { sub: userId, email, role };
+
+    const token = await this.jwt.signAsync(payload, {
+      expiresIn: '15m',
+      secret: this.config.get('JWT_SECRET'),
+    });
+
+    return { access_token: token };
   }
 }
