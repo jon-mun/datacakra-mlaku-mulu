@@ -6,13 +6,14 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateUserDto, UpdateUserDto } from './dto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import * as argon from 'argon2';
 
 @Injectable()
 export class UserService {
-  constructor(private prismaService: PrismaService) {}
+  constructor(private prisma: PrismaService) {}
 
   async getAllUsers() {
-    const users = await this.prismaService.user.findMany({
+    const users = await this.prisma.user.findMany({
       include: {
         tourist: true,
         employee: true,
@@ -23,7 +24,7 @@ export class UserService {
   }
 
   async getTourists() {
-    const tourists = await this.prismaService.tourist.findMany({
+    const tourists = await this.prisma.tourist.findMany({
       include: {
         user: true,
       },
@@ -33,7 +34,7 @@ export class UserService {
   }
 
   async getEmployees() {
-    const employees = await this.prismaService.employee.findMany({
+    const employees = await this.prisma.employee.findMany({
       include: {
         user: true,
       },
@@ -43,15 +44,22 @@ export class UserService {
   }
 
   async createTouristUser(CreateUserDto: CreateUserDto) {
+    const hashedPassword = await argon.hash(CreateUserDto.password);
+
+    const data = {
+      ...CreateUserDto,
+      password: hashedPassword,
+    };
+
     try {
-      const user = await this.prismaService.user.create({
+      const user = await this.prisma.user.create({
         data: {
-          ...CreateUserDto,
+          ...data,
           role: 'TOURIST',
         },
       });
 
-      const tourist = await this.prismaService.tourist.create({
+      const tourist = await this.prisma.tourist.create({
         data: {
           user: {
             connect: {
@@ -73,15 +81,22 @@ export class UserService {
   }
 
   async createEmployeeUser(CreateUserDto: CreateUserDto) {
+    const hashedPassword = await argon.hash(CreateUserDto.password);
+
+    const data = {
+      ...CreateUserDto,
+      password: hashedPassword,
+    };
+
     try {
-      const user = await this.prismaService.user.create({
+      const user = await this.prisma.user.create({
         data: {
-          ...CreateUserDto,
+          ...data,
           role: 'EMPLOYEE',
         },
       });
 
-      const employee = await this.prismaService.employee.create({
+      const employee = await this.prisma.employee.create({
         data: {
           user: {
             connect: {
@@ -104,7 +119,12 @@ export class UserService {
 
   async updateTouristUser(updateUserDto: UpdateUserDto, id: string) {
     try {
-      const result = await this.prismaService.tourist.update({
+      if (updateUserDto.password) {
+        const hashedPassword = await argon.hash(updateUserDto.password);
+        updateUserDto.password = hashedPassword;
+      }
+
+      const result = await this.prisma.tourist.update({
         where: { id: id },
         data: {
           user: {
@@ -132,7 +152,7 @@ export class UserService {
 
   async deleteTouristUser(id: string) {
     try {
-      const tourist = await this.prismaService.tourist.findUnique({
+      const tourist = await this.prisma.tourist.findUnique({
         where: { id: id },
       });
 
@@ -141,15 +161,15 @@ export class UserService {
       }
 
       // delete journeys correlated to tourist
-      await this.prismaService.journey.deleteMany({
+      await this.prisma.journey.deleteMany({
         where: { touristId: id },
       });
 
-      await this.prismaService.tourist.delete({
+      await this.prisma.tourist.delete({
         where: { id: id },
       });
 
-      const result = await this.prismaService.user.delete({
+      const result = await this.prisma.user.delete({
         where: { id: tourist.userId },
       });
 
@@ -165,7 +185,7 @@ export class UserService {
   }
 
   async getTouristByUserId(id: string) {
-    const tourist = this.prismaService.tourist.findUnique({
+    const tourist = this.prisma.tourist.findUnique({
       where: { userId: id },
       include: {
         user: {
@@ -180,7 +200,7 @@ export class UserService {
   }
 
   async getEmployeeByUserId(id: string) {
-    const employee = this.prismaService.employee.findUnique({
+    const employee = this.prisma.employee.findUnique({
       where: { userId: id },
       include: {
         user: {

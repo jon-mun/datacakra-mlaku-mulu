@@ -2,6 +2,8 @@ import { PrismaClient } from '@prisma/client';
 
 import { parseArgs } from 'node:util';
 
+import * as argon from 'argon2';
+
 const options = {
   email: { type: 'string' },
   password: { type: 'string' },
@@ -17,10 +19,11 @@ async function createRootUser() {
   });
 
   if (email && password) {
+    const hash = await argon.hash(password);
     await prisma.user.create({
       data: {
         email,
-        password,
+        password: hash,
         role: 'ROOT',
       },
     });

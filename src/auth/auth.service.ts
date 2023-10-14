@@ -7,6 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { SignInDto } from './dto';
 import { PrismaService } from 'src/prisma/prisma.service';
+import * as argon from 'argon2';
 
 @Injectable()
 export class AuthService {
@@ -28,8 +29,8 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
 
-    // TODO: implement argon2 hashing
-    if (user.password !== password) {
+    const isPasswordValid = await argon.verify(user.password, password);
+    if (!isPasswordValid) {
       throw new BadRequestException('Invalid password');
     }
 
