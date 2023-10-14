@@ -27,15 +27,39 @@ model Employee {
   userId  String   @unique
   user    User     @relation(fields: [userId], references: [id])
 
+  journeys Journey[]
+
   @@map("employees")
 }
 
 model Tourist {
   id        String   @id @default(uuid())
+
   userId    String  @unique
   user      User     @relation(fields: [userId], references: [id])
 
+  journeys  Journey[]
+
   @@map("tourists")
+}
+
+model Journey {
+  id          String   @id @default(uuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  startDate   DateTime
+  endDate     DateTime
+  destination String
+  description String?
+
+  touristId   String
+  tourist     Tourist  @relation(fields: [touristId], references: [id])
+
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id])
+
+  @@map("journeys")
 }
 
 enum Role {

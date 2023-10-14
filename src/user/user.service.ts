@@ -66,4 +66,34 @@ export class UserService {
       throw error;
     }
   }
+
+  async getTouristByUserId(id: string) {
+    const tourist = this.prismaService.tourist.findUnique({
+      where: { userId: id },
+      include: {
+        user: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+
+    return tourist;
+  }
+
+  async getEmployeeByUserId(id: string) {
+    const employee = this.prismaService.employee.findUnique({
+      where: { userId: id },
+      include: {
+        user: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+
+    return employee;
+  }
 }
