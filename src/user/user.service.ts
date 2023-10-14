@@ -1,11 +1,46 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateUserDto } from './dto';
+import { CreateUserDto, UpdateUserDto } from './dto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class UserService {
   constructor(private prismaService: PrismaService) {}
+
+  async getAllUsers() {
+    const users = await this.prismaService.user.findMany({
+      include: {
+        tourist: true,
+        employee: true,
+      },
+    });
+
+    return users;
+  }
+
+  async getTourists() {
+    const tourists = await this.prismaService.tourist.findMany({
+      include: {
+        user: true,
+      },
+    });
+
+    return tourists;
+  }
+
+  async getEmployees() {
+    const employees = await this.prismaService.employee.findMany({
+      include: {
+        user: true,
+      },
+    });
+
+    return employees;
+  }
 
   async createTouristUser(CreateUserDto: CreateUserDto) {
     try {
@@ -61,6 +96,68 @@ export class UserService {
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
           throw new BadRequestException('Credentials taken');
+        }
+      }
+      throw error;
+    }
+  }
+
+  async updateTouristUser(updateUserDto: UpdateUserDto, id: string) {
+    try {
+      const result = await this.prismaService.tourist.update({
+        where: { id: id },
+        data: {
+          user: {
+            update: {
+              ...updateUserDto,
+            },
+          },
+        },
+      });
+
+      return result;
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          throw new BadRequestException('Credentials taken');
+        }
+
+        if (error.code === 'P2025') {
+          throw new NotFoundException('Tourist not found');
+        }
+      }
+      throw error;
+    }
+  }
+
+  async deleteTouristUser(id: string) {
+    try {
+      const tourist = await this.prismaService.tourist.findUnique({
+        where: { id: id },
+      });
+
+      if (!tourist) {
+        throw new NotFoundException('Tourist not found');
+      }
+
+      // delete journeys correlated to tourist
+      await this.prismaService.journey.deleteMany({
+        where: { touristId: id },
+      });
+
+      await this.prismaService.tourist.delete({
+        where: { id: id },
+      });
+
+      const result = await this.prismaService.user.delete({
+        where: { id: tourist.userId },
+      });
+
+      return result;
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new NotFoundException('Tourist not found');
         }
       }
       throw error;
