@@ -26,7 +26,14 @@ export class UserService {
   async getTourists() {
     const tourists = await this.prisma.tourist.findMany({
       include: {
-        user: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
       },
     });
 
@@ -200,7 +207,7 @@ export class UserService {
   }
 
   async getEmployeeByUserId(id: string) {
-    const employee = this.prisma.employee.findUnique({
+    const employee = await this.prisma.employee.findUnique({
       where: { userId: id },
       include: {
         user: {
