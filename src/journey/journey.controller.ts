@@ -9,13 +9,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JourneyService } from './journey.service';
-import { Role } from '@prisma/client';
+
 import { GetUser, Roles } from 'src/auth/decorator';
 import { JwtGuard } from 'src/auth/guard';
 import { RolesGuard } from 'src/auth/guard/roles.guard';
 import { CreateJourneyDto, UpdateJourneyDto } from './dto';
 import { TouristPrivateGuard } from 'src/auth/guard/tourist_private.guard';
 import { UserService } from 'src/user/user.service';
+import { Role } from 'src/auth/types';
 
 @UseGuards(JwtGuard, RolesGuard)
 @Controller('journeys')
