@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateJourneyDto, UpdateJourneyDto } from './dto';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class JourneyService {
@@ -46,15 +47,39 @@ export class JourneyService {
 
   async updateJourney(id: string, data: UpdateJourneyDto) {
     if (!id) throw new BadRequestException('id is undefined');
-    return this.prisma.journey.update({
-      where: { id: id },
-      data,
-    });
+
+    try {
+      const result = await this.prisma.journey.update({
+        where: { id: id },
+        data,
+      });
+
+      return result;
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new BadRequestException('Journey not found');
+        }
+      }
+      throw error;
+    }
   }
 
   async deleteJourney(id: string) {
-    return this.prisma.journey.delete({
-      where: { id },
-    });
+    try {
+      const result = await this.prisma.journey.delete({
+        where: { id },
+      });
+
+      return result;
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new BadRequestException('Journey not found');
+        }
+      }
+
+      throw error;
+    }
   }
 }

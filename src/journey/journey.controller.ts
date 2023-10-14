@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -60,5 +61,11 @@ export class JourneyController {
     @Body() updateJourneyDto: UpdateJourneyDto,
   ) {
     return this.journeyService.updateJourney(id, updateJourneyDto);
+  }
+
+  @Delete(':id')
+  @Roles(Role.ROOT, Role.EMPLOYEE)
+  async deleteJourney(@Param('id') id: string) {
+    return this.journeyService.deleteJourney(id);
   }
 }
